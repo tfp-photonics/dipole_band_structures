@@ -58,12 +58,12 @@ def int_mat( pos ):
 
 def spectrum( pos ):
     """
-    Returns shift, linewidth and eigenvectors
+    Returns shift, linewidth and eigenvectors. Shift and linewidth are computed according to the expressions in https://link.springer.com/article/10.1140/epjb/e2020-100473-3
     """
     vals, vecs = jnp.linalg.eig( int_mat(pos) )
     return -jnp.real( 2*vals  ), -jnp.imag( vals ), vecs
 
-def band_structure( vecs, N : int = 1 ):
+def band_structure( vecs, N : int = 1, n_m : int  = 3 ):
     """
     Assigns each right eigenvector a normalized crystal momentum k
     """
@@ -76,13 +76,16 @@ def band_structure( vecs, N : int = 1 ):
     ks = jnp.arange(max_ind) / L * 2
     
     # for each vector, identify the oscillating component, so the component of the particle with largest abs values
-    comp = jnp.argmax( jnp.stack([ jnp.abs(vecs[i::3*N,:]).sum(axis = 0) for i in range(3*N)]), axis = 0)
-    vecs = jnp.stack( [ vecs[comp[i]::3*N,i] for i in range(comp.size) ] )
+    comp = jnp.argmax( jnp.stack([ jnp.abs(vecs[i::n_m*N,:]).sum(axis = 0) for i in range(n_m*N)]), axis = 0)
+    vecs = jnp.stack( [ vecs[comp[i]::n_m*N,i] for i in range(comp.size) ] )
     
     # return maximum k vector for each eigenvalue
     return jax.vmap( jax.jit(inner), (0,), 0)( vecs )
 
 def dos( w, wm, gm ):
+    """
+    Computes the DOS according to the expression in https://link.springer.com/article/10.1140/epjb/e2020-100473-3
+    """
     return jnp.sum( gm / ( (w - wm)**2 + gm**2) )
 
 def show( pos ):
