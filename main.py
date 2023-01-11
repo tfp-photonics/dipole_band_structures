@@ -40,13 +40,13 @@ def dyad( vec1, vec2 ):
     r = jnp.linalg.norm(r_vec)
     return lax.cond( r == 0, lambda r : jnp.zeros((3,3), dtype = complex), lambda r : jnp.exp(1j*k*r)/r*( jnp.eye(3)*(1 + (1j*k*r-1)/(k*r)**2 ) + (-1 + (3 - 3*1j*k*r)/(k*r)**2) * jnp.outer(r_vec,r_vec)/r**2 ), r )
 
-def reorder( mat ):
+def reorder( mat, n_m = 3 ):
     """
     Reorders a NxNx3x3 matrix produced by vmapping dyad over an array returned by chain, stacked_chains to a 3Nx3N matrix, which is proportional to the offdiagonal part of the interaction matrix
     """
     def inner( i,j ):
-        k, l = i % 3, j % 3
-        r, s = (i/3).astype(int), (j/3).astype(int)
+        k, l = i % n_m, j % n_m
+        r, s = (i/n_m).astype(int), (j/n_m).astype(int)
         return mat[r,s,l,k]
     return jax.vmap( jax.vmap( jax.jit(inner), (0, None), 0), (None,0), 0 )( jnp.arange(mat.shape[0]*3), jnp.arange(mat.shape[0]*3) )
 
@@ -63,7 +63,7 @@ def spectrum( pos ):
     vals, vecs = jnp.linalg.eig( int_mat(pos) )
     return -jnp.real( 2*vals  ), -jnp.imag( vals ), vecs
 
-def band_structure( vecs, N : int = 1, n_m : int  = 3 ):
+def band_structure( vecs, N = 1, n_m = 3 ):
     """
     Assigns each right eigenvector a normalized crystal momentum k
     """
@@ -86,7 +86,7 @@ def dos( w, wm, gm ):
     """
     Computes the DOS according to the expression in https://link.springer.com/article/10.1140/epjb/e2020-100473-3
     """
-    return jnp.sum( gm / ( (w - wm)**2 + gm**2) )
+    return jnp.sum( gm / ( (jnp.expand_dims(w,1) - wm)**2 + gm**2), axis = 1 )
 
 def show( pos ):
     fig, ax = plt.subplots(1,1)
@@ -115,6 +115,6 @@ def quickshow( vec ):
     plt.plot( jnp.arange(vec.size), vec )
     plt.show()
     
-show_band_structure(chain(20, 0.2, 0))
+# show_band_structure(chain(20, 0.2, 0))
 # show_band_structure( twisted_chains(1,1,0.3,0.1,30), 2 )
 # show( twisted_chains(1,2,0.2,0.05,10) )
