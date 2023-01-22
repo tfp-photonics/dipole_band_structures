@@ -1,0 +1,20 @@
+Metadata-Version: 2.1
+Name: lorentzian-bands
+Version: 0.0.1
+Summary: script for band structures of 1D lorentzian scatterers
+Author-email: David Dams <david.dams@kit.edu>
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+
+# Lorentzian band structures
+
+Collection of scripts to calculate band structures of 1D geometries of Lorentzian scatterers.
+
+## Installation
+Clone repo and run
+```
+pip intall -e .
+```
