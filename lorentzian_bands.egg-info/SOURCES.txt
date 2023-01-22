@@ -1,8 +1,0 @@
-README.md
-main.py
-pyproject.toml
-lorentzian_bands.egg-info/PKG-INFO
-lorentzian_bands.egg-info/SOURCES.txt
-lorentzian_bands.egg-info/dependency_links.txt
-lorentzian_bands.egg-info/requires.txt
-lorentzian_bands.egg-info/top_level.txt
