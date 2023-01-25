@@ -10,7 +10,10 @@ config.update("jax_enable_x64", True)
 
 from mpmath import clcos, clsin
 
+
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+from matplotlib.colorbar import Colorbar
 
 import pdb
 
@@ -105,10 +108,8 @@ def show_int_mat( pos ):
 def show_band_structure( pos, n = 1 ):
     shift, linewidth, vecs = spectrum(pos)
     ks = band_structure( vecs, n )
-    fig, axs = plt.subplots(1,2)
-    scale = 1
-    axs[0].plot( ks, scale*shift, '.' )
-    axs[1].plot( ks, scale*linewidth, '.' )
+    axs[0].plot( ks, shift, '.' )
+    axs[1].plot( ks, linewidth, '.' )
     return axs
 
 def show_eigenstate( pos, selection : Array, component = 0, particle = 0, n = 1 ):
@@ -145,48 +146,103 @@ def analytic_stack( l : float, o : float, kzs ):
     chain = 2*analytic_chain( l, kzs )
     bands = analytic_flat_bands( 1, 1, l, o ) * jnp.ones_like( kzs )
     return jnp.stack( (chain[:,0] - bands[0,0], chain[:,1] - bands[0,0], chain[:,0] - bands[1,0], bands[0,:], bands[1,:], bands[1,:],
-                             chain[:,2], chain[:,3], chain[:,2], bands[2,:], bands[3,:], bands[2,:]) ).T
-                             
+                             chain[:,2], chain[:,3], chain[:,2], bands[2,:], bands[3,:], bands[2,:]) ).T                             
 
 def analytic_flat_bands( a : int, b : int, l : float, o : float ):
     pos = twisted_chains( a, b, l, o, 1)
     kr  = 2*jnp.pi*jnp.min(jnp.linalg.norm(pos[ pos[:,1] != 0 ] - jnp.expand_dims(pos[ pos[:,1] == 0 ],1), axis = 2), axis = 1)
     E1 = 3/(4*kr) * ( jnp.cos(kr) - jnp.cos(kr)/kr**2 - jnp.sin(kr)/kr )
     E2 = 3/(2*kr) * ( jnp.cos(kr)/kr**2 + jnp.sin(kr)/kr )
-    return jnp.array( [E1, E2, jnp.zeros_like(E1), jnp.zeros_like(E2)] )
+    return jnp.stack( [E1, E2, jnp.zeros_like(E1), jnp.zeros_like(E2)] )
 
-k = jnp.linspace(0, 1, 100)
+k = jnp.linspace(0, 1, 200)
+X_LABEL = r'$k \,\,\,\left( \dfrac{\pi}{\Lambda} \right)$'
+D_LABEL = r'$D(k)$'
+G_LABEL = r'$G(k)$'
+LW = 2.1
+PS = None
+LL_COLOR = 'grey'
+LL_STYLE = '--'
+LL_ALPHA = 0.8
+LL_SIZE = 2.1
+LL_LABEL = r'$k = k_0$'
 
-## single chain 
+## single chain
 # lc = 0.2
-# axs = show_band_structure( chain(40,lc,0) )
+# shift, linewidth, vecs = spectrum( chain(40,lc,0) )
+# ks = band_structure( vecs, 1 )
 # arr = analytic_chain( lc, k*jnp.pi )
-# axs[0].plot( k, arr[:,:2] )
-# axs[1].plot( k, arr[:,2:] )
+
+# fig, (ax1, ax2) = plt.subplots(ncols=2)
+# ax1.set_box_aspect(1)
+# ax1.plot( k, arr[:,:2], lw = LW )
+# ax1.plot( ks, shift, '.', lw = PS )
+# ax1.set_xlabel( X_LABEL )
+# ax1.set_ylabel( D_LABEL )
+# ax1.axvline( 2*lc, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
+# ax1.legend( ax1.lines, (r'$D_{\perp}(k)$', r'$D_{\parallel}$(k)', 'finite', LL_LABEL ) )
+
+# ax2.set_box_aspect(1)
+# ax2.plot( k, arr[:,2:], lw = LW )
+# ax2.plot( ks, linewidth, '.', lw = PS )
+# ax2.set_xlabel( X_LABEL )
+# ax2.set_ylabel( G_LABEL )
+# ax2.axvline( 2*lc, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
+# ax2.legend( ax2.lines, (r'$G_{\perp}(k)$', r'$G_{\parallel}(k)$', 'finite', LL_LABEL) )
+# plt.savefig('single_chain.pdf')
 # plt.show()
 # plt.close()
 
-## stack
-# lc, o = 0.3, 0.1
-# arr = analytic_stack( lc, o, jnp.linspace(0, 1, 100)*jnp.pi)
-# axs = show_band_structure( twisted_chains(1,1,lc,o,30), 2 )
-# axs[0].plot( k, arr[:,:6] )
-# axs[1].plot( k, arr[:,6:] )
+## stack with no Moiré
+lc, o = 0.3, 0.1
+arr = analytic_stack( lc, o, k * jnp.pi)
+pos = twisted_chains(1,1,lc,o,30)
+shift, linewidth, vecs = spectrum( pos )
+w = jnp.linspace(jnp.min(shift)-1,jnp.max(shift)+1,400)
+ks = band_structure( vecs, 2 )
+d = dos(w, shift, linewidth  ) 
+
+fig = plt.figure()
+canvas = gridspec.GridSpec(2,
+                          1,
+                          wspace=0,
+                          hspace=0.05,
+                          height_ratios=[0.05,1])
+inlet = gridspec.GridSpecFromSubplotSpec(1,
+                                         2,
+                                         subplot_spec=canvas[1],
+                                         wspace=0,
+                                         hspace=0)
+
+ax1 = plt.subplot( inlet[0] )
+sc = ax1.scatter( ks, shift, c = linewidth )
+ax1.plot( k, arr[:,:6] )
+ax1.set_xlabel( X_LABEL )
+ax1.set_ylabel( 'D' )
+ax1.axvline( 2*lc, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
+
+ax2 = plt.subplot( inlet[1] )
+ax2.sharey(ax1)
+ax2.plot( d, w, '--' )
+ax2.set_xlabel( r'DOS' )
+ax2.legend( ax1.lines[:-1] + ax2.lines, (r'$D_{1,+}(k)$', r'$D_{3,+}(k)$', r'$D_{2,+}(k)$', r'$D_{1,-}(k)$', r'$D_{3,-}(k)$', r'$D_{2,-}(k)$', r'$DOS(D)$' ) )
+plt.setp(ax2.get_yticklabels(), visible=False)
+
+cbax = plt.subplot(canvas[0])
+cb = Colorbar(ax = cbax, mappable = sc, orientation = 'horizontal', ticklocation = 'top', label = r'$G$' )
 # plt.show()
 # plt.close()
-
-## dos
-w = jnp.linspace(-8,8,100)
-plt.plot( dos(w, *spectrum(twisted_chains(1,1,lc,o,30))[:2]  ) )
-plt.show()
+plt.savefig('dos.pdf')
 
 ## twisted chains
+# a, b, o, lc = 3, 4, 0.05, 0.3
+# arr = analytic_flat_bands( a, b, lc, o)
+# shift, linewidth, vecs = spectrum( twisted_chains(a,b,lc,o,30) )
+# ks = band_structure( vecs, a+b )
 
-
-# w = jnp.linspace(-4,4,100)
-# plt.plot( dos( w, *spectrum(chain(20, 0.2, 0))[:2] ) )
+# fig, (ax1, ax2) = plt.subplots(ncols=2)
+# ax1.plot( ks, shift, '.' )
+# for el in arr[:int(arr.shape[0]/2),:].flatten():
+#     ax1.axhline( el )
 # plt.show()
-    
-# show_band_structure(chain(20, 0.2, 0))
-# show_band_structure( twisted_chains(1,1,0.3,0.1,30), 2 )
-# show( twisted_chains(1,2,0.2,0.05,10) )
+# plt.close()
