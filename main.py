@@ -18,7 +18,7 @@ from matplotlib.colorbar import Colorbar
 import pdb
 
 # globals, treat read only, these variables have no influence on the simulations as long as spatial quantities are measured in units of LAMBDA_0
-LAMBDA_0 =  1
+LAMBDA_0 =  19
 K_0      = 2*jnp.pi / LAMBDA_0
 SCALE    = -6*jnp.pi/K_0**3 * K_0**2
 
@@ -65,7 +65,7 @@ def reorder( mat, n_m = 3 ):
 
 def int_mat( pos, n_m = 3 ):
     """
-    Maps a Nx3 position array to a 3Nx3N interaction matrix at k = k_0. The diagonal part, which is just 1j times the identity, is omitted.
+    Maps a Nx3 position array to a 3Nx3N interaction matrix at k = k_0. 
     """
     return -SCALE * reorder( jax.vmap( jax.vmap( dyad, (0, None), 0 ), (None, 0), 0 )(pos, pos) ) + 1j * jnp.eye( pos.shape[0] * n_m )
 
@@ -179,31 +179,33 @@ LL_SIZE = 2.1
 LL_LABEL = r'$k = k_0$'
 
 ## single chain
-# lc = 0.2 * LAMBDA_0
-# light_line = K_0 / (jnp.pi/lc) 
-# shift, linewidth, vecs = spectrum( chain(40,lc,0) )
-# ks = band_structure( vecs, 1 )
-# arr = analytic_chain( lc, k*jnp.pi/lc )
+print(SCALE)
+lc = 0.4* LAMBDA_0
+light_line = K_0 / (jnp.pi/lc) 
+shift, linewidth, vecs = spectrum( chain(40,lc,0) )
+ks = band_structure( vecs, 1 )
+arr = analytic_chain( lc, k*jnp.pi/lc )
 
-# fig, (ax1, ax2) = plt.subplots(ncols=2)
-# ax1.set_box_aspect(1)
-# ax1.plot( k, arr[:,:2], lw = LW )
-# ax1.plot( ks, shift, '.', lw = PS )
-# ax1.set_xlabel( X_LABEL )
-# ax1.set_ylabel( D_LABEL )
-# ax1.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
-# ax1.legend( ax1.lines, (r'$D_{\perp}(k)$', r'$D_{\parallel}$(k)', 'finite', LL_LABEL ) )
+fig, (ax1, ax2) = plt.subplots(ncols=2)
+ax1.set_box_aspect(1)
+ax1.plot( k, arr[:,:2], lw = LW )
+ax1.plot( ks, shift, '.', lw = PS )
+ax1.set_xlabel( X_LABEL )
+ax1.set_ylabel( D_LABEL )
+ax1.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
+ax1.legend( ax1.lines, (r'$D_{\perp}(k)$', r'$D_{\parallel}$(k)', 'finite', LL_LABEL ) )
 
-# ax2.set_box_aspect(1)
-# ax2.plot( k, arr[:,2:], lw = LW )
-# ax2.plot( ks, linewidth, '.', lw = PS )
-# ax2.set_xlabel( X_LABEL )
-# ax2.set_ylabel( G_LABEL )
-# ax2.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
-# ax2.legend( ax2.lines, (r'$G_{\perp}(k)$', r'$G_{\parallel}(k)$', 'finite', LL_LABEL) )
-# plt.savefig('single_chain.pdf')
-# plt.show()
-# plt.close()
+ax2.set_box_aspect(1)
+ax2.plot( k, arr[:,2:], lw = LW )
+ax2.plot( ks, linewidth, '.', lw = PS )
+ax2.set_xlabel( X_LABEL )
+ax2.set_ylabel( G_LABEL )
+ax2.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
+ax2.legend( ax2.lines, (r'$G_{\perp}(k)$', r'$G_{\parallel}(k)$', 'finite', LL_LABEL) )
+plt.savefig('single_chain.pdf')
+plt.show()
+print(SCALE)
+plt.close()
 
 ## stack with no Moiré
 # lc, o = 0.3*LAMBDA_0, 0.1*LAMBDA_0
@@ -248,25 +250,33 @@ LL_LABEL = r'$k = k_0$'
 # plt.savefig('dos.pdf')
 
 ## twisted chains
-fig, ax = plt.subplots()
-a, b, o, lc = 3, 4, 0.05*LAMBDA_0, 0.3*LAMBDA_0
-vals = [ (3,4), (5,7), (8,9) ]
-flat_bands = [ analytic_flat_bands( a, b, lc, o) for a,b in vals ]
-lim1, lim2 = max( [ jnp.max(arr) for arr in flat_bands ] ) + 10, min( jnp.min(arr) for arr in flat_bands ) - 10
-for i,arr in enumerate(flat_bands):
-    a,b = vals[i]
-    shift, linewidth, vecs = spectrum( twisted_chains(a,b,lc,o,30) )
-    w = jnp.linspace(lim1,lim2,4000)
-    d = dos(w, shift, linewidth) 
+# fig, ax = plt.subplots()
+# a, b, o, lc = 3, 4, 0.1*LAMBDA_0, 0.3*LAMBDA_0
+# vals = [ (3,4), (5,7), (8,9) ]
+# flat_bands = [ analytic_flat_bands( a, b, lc, o) for a,b in vals ]
+# lim1, lim2 = max( [ jnp.max(arr) for arr in flat_bands ] ) + 2, min( jnp.min(arr) for arr in flat_bands ) - 2
+# for i,arr in enumerate(flat_bands):
+#     a,b = vals[i]
+#     shift, linewidth, vecs = spectrum( twisted_chains(a,b,lc,o,30) )
+#     w = jnp.linspace(lim1,lim2,4000)
+#     d = dos(w, shift, linewidth) 
 
-    ax.plot( w, d, label = rf'$\theta = {a}/{b}$' )
-    for el in arr[:int(arr.shape[0]/2),:].flatten():
-        ax.axvline( el, ls = '--', c = ax.lines[-1].get_color() )
+#     ax.plot( w, d, label = rf'$\theta = {a}/{b}$' )
+#     for el in arr[:int(arr.shape[0]/2),:].flatten():
+#         ax.axvline( el, ls = '--', c = ax.lines[-1].get_color(), alpha = 0.5 )
 
-ax.set_yscale('log')
-ax.set_xlabel(r'$D$')
-ax.set_ylabel(r'$\log(DOS)$')
-plt.legend()
+# ax.set_yscale('log')
+# ax.set_xlabel(r'$D$')
+# ax.set_ylabel(r'$\log(DOS)$')
+# plt.legend()
+# # plt.show()
+# # plt.close()
+# plt.savefig('dos2.pdf')
+# d = jnp.linspace(1e-10, 0.1, 100)
+# c1 = jnp.exp( 1j*K_0 * d)/d*(1 + (1j*K_0*d - 1)/(K_0*d)**2 )
+# c2 = jnp.exp( 1j*K_0 * d)/d* (1 - 1j*K_0*d )/(K_0*d)**2
+# plt.plot( d, jnp.imag(c1))
+# plt.plot( d, jnp.imag(c2))
+# plt.plot( d, jnp.real(c1))
+# plt.plot( d, jnp.real(c2))
 # plt.show()
-# plt.close()
-plt.savefig('dos2.pdf')
