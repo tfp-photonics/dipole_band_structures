@@ -179,7 +179,6 @@ LL_SIZE = 2.1
 LL_LABEL = r'$k = k_0$'
 
 ## single chain
-print(SCALE)
 lc = 0.4* LAMBDA_0
 light_line = K_0 / (jnp.pi/lc) 
 shift, linewidth, vecs = spectrum( chain(40,lc,0) )
@@ -202,81 +201,72 @@ ax2.set_xlabel( X_LABEL )
 ax2.set_ylabel( G_LABEL )
 ax2.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
 ax2.legend( ax2.lines, (r'$G_{\perp}(k)$', r'$G_{\parallel}(k)$', 'finite', LL_LABEL) )
-plt.savefig('single_chain.pdf')
+# plt.savefig('single_chain.pdf')
 plt.show()
-print(SCALE)
 plt.close()
 
 ## stack with no Moiré
-# lc, o = 0.3*LAMBDA_0, 0.1*LAMBDA_0
-# light_line = K_0 / (jnp.pi/lc) 
-# arr = analytic_stack( lc, o, k * jnp.pi/lc)
-# pos = twisted_chains(1,1,lc,o,30)
-# shift, linewidth, vecs = spectrum( pos )
-# w = jnp.linspace(jnp.min(shift)-1,jnp.max(shift)+1,400)
-# ks = band_structure( vecs, 2 )
-# d = dos(w, shift, linewidth  ) 
+lc, o = 0.3*LAMBDA_0, 0.1*LAMBDA_0
+light_line = K_0 / (jnp.pi/lc) 
+arr = analytic_stack( lc, o, k * jnp.pi/lc)
+pos = twisted_chains(1,1,lc,o,30)
+shift, linewidth, vecs = spectrum( pos )
+w = jnp.linspace(jnp.min(shift)-1,jnp.max(shift)+1,400)
+ks = band_structure( vecs, 2 )
+d = dos(w, shift, linewidth  ) 
 
-# fig = plt.figure()
-# canvas = gridspec.GridSpec(2,
-#                           1,
-#                           wspace=0,
-#                           hspace=0.05,
-#                           height_ratios=[0.05,1])
-# inlet = gridspec.GridSpecFromSubplotSpec(1,
-#                                          2,
-#                                          subplot_spec=canvas[1],
-#                                          wspace=0,
-#                                          hspace=0)
+fig = plt.figure()
+canvas = gridspec.GridSpec(2,
+                          1,
+                          wspace=0,
+                          hspace=0.05,
+                          height_ratios=[0.05,1])
+inlet = gridspec.GridSpecFromSubplotSpec(1,
+                                         2,
+                                         subplot_spec=canvas[1],
+                                         wspace=0,
+                                         hspace=0)
 
-# ax1 = plt.subplot( inlet[0] )
-# sc = ax1.scatter( ks, shift, c = linewidth )
-# ax1.plot( k, arr[:,:6] )
-# ax1.set_xlabel( X_LABEL )
-# ax1.set_ylabel( 'D' )
-# ax1.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
+ax1 = plt.subplot( inlet[0] )
+sc = ax1.scatter( ks, shift, c = linewidth )
+ax1.plot( k, arr[:,:6] )
+ax1.set_xlabel( X_LABEL )
+ax1.set_ylabel( 'D' )
+ax1.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
 
-# ax2 = plt.subplot( inlet[1] )
-# ax2.sharey(ax1)
-# ax2.plot( d, w, '--' )
-# ax2.set_xlabel( r'DOS' )
-# ax2.legend( ax1.lines[:-1] + ax2.lines, (r'$D_{1,+}(k)$', r'$D_{3,+}(k)$', r'$D_{2,+}(k)$', r'$D_{1,-}(k)$', r'$D_{3,-}(k)$', r'$D_{2,-}(k)$', r'$DOS(D)$' ) )
-# plt.setp(ax2.get_yticklabels(), visible=False)
+ax2 = plt.subplot( inlet[1] )
+ax2.sharey(ax1)
+ax2.plot( d, w, '--' )
+ax2.set_xlabel( r'DOS' )
+ax2.legend( ax1.lines[:-1] + ax2.lines, (r'$D_{1,+}(k)$', r'$D_{3,+}(k)$', r'$D_{2,+}(k)$', r'$D_{1,-}(k)$', r'$D_{3,-}(k)$', r'$D_{2,-}(k)$', r'$DOS(D)$' ) )
+plt.setp(ax2.get_yticklabels(), visible=False)
 
-# cbax = plt.subplot(canvas[0])
-# cb = Colorbar(ax = cbax, mappable = sc, orientation = 'horizontal', ticklocation = 'top', label = r'$G$' )
-# plt.show()
-# plt.close()
+cbax = plt.subplot(canvas[0])
+cb = Colorbar(ax = cbax, mappable = sc, orientation = 'horizontal', ticklocation = 'top', label = r'$G$' )
+plt.show()
+plt.close()
 # plt.savefig('dos.pdf')
 
 ## twisted chains
-# fig, ax = plt.subplots()
-# a, b, o, lc = 3, 4, 0.1*LAMBDA_0, 0.3*LAMBDA_0
-# vals = [ (3,4), (5,7), (8,9) ]
-# flat_bands = [ analytic_flat_bands( a, b, lc, o) for a,b in vals ]
-# lim1, lim2 = max( [ jnp.max(arr) for arr in flat_bands ] ) + 2, min( jnp.min(arr) for arr in flat_bands ) - 2
-# for i,arr in enumerate(flat_bands):
-#     a,b = vals[i]
-#     shift, linewidth, vecs = spectrum( twisted_chains(a,b,lc,o,30) )
-#     w = jnp.linspace(lim1,lim2,4000)
-#     d = dos(w, shift, linewidth) 
+fig, ax = plt.subplots()
+a, b, o, lc = 3, 4, 0.1*LAMBDA_0, 0.3*LAMBDA_0
+vals = [ (3,4), (5,7), (8,9) ]
+flat_bands = [ analytic_flat_bands( a, b, lc, o) for a,b in vals ]
+lim1, lim2 = max( [ jnp.max(arr) for arr in flat_bands ] ) + 2, min( jnp.min(arr) for arr in flat_bands ) - 2
+for i,arr in enumerate(flat_bands):
+    a,b = vals[i]
+    shift, linewidth, vecs = spectrum( twisted_chains(a,b,lc,o,30) )
+    w = jnp.linspace(lim1,lim2,4000)
+    d = dos(w, shift, linewidth) 
 
-#     ax.plot( w, d, label = rf'$\theta = {a}/{b}$' )
-#     for el in arr[:int(arr.shape[0]/2),:].flatten():
-#         ax.axvline( el, ls = '--', c = ax.lines[-1].get_color(), alpha = 0.5 )
+    ax.plot( w, d, label = rf'$\theta = {a}/{b}$' )
+    for el in arr[:int(arr.shape[0]/2),:].flatten():
+        ax.axvline( el, ls = '--', c = ax.lines[-1].get_color(), alpha = 0.5 )
 
-# ax.set_yscale('log')
-# ax.set_xlabel(r'$D$')
-# ax.set_ylabel(r'$\log(DOS)$')
-# plt.legend()
-# # plt.show()
-# # plt.close()
+ax.set_yscale('log')
+ax.set_xlabel(r'$D$')
+ax.set_ylabel(r'$\log(DOS)$')
+plt.legend()
+plt.show()
+plt.close()
 # plt.savefig('dos2.pdf')
-# d = jnp.linspace(1e-10, 0.1, 100)
-# c1 = jnp.exp( 1j*K_0 * d)/d*(1 + (1j*K_0*d - 1)/(K_0*d)**2 )
-# c2 = jnp.exp( 1j*K_0 * d)/d* (1 - 1j*K_0*d )/(K_0*d)**2
-# plt.plot( d, jnp.imag(c1))
-# plt.plot( d, jnp.imag(c2))
-# plt.plot( d, jnp.real(c1))
-# plt.plot( d, jnp.real(c2))
-# plt.show()
