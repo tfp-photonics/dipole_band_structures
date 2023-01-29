@@ -1,6 +1,8 @@
 """Contains main code to compute interaction matrices for Lorentzian scatterers
 """
 
+from functools import reduce
+
 import jax
 from jax import Array
 import jax.numpy as jnp
@@ -8,17 +10,17 @@ from jax import lax
 from jax.config import config
 config.update("jax_enable_x64", True)
 
-from mpmath import clcos, clsin
-
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.colorbar import Colorbar
 
+from mpmath import clcos, clsin
+
 import pdb
 
 # globals, treat read only, these variables have no influence on the simulations as long as spatial quantities are measured in units of LAMBDA_0
-LAMBDA_0 =  19
+LAMBDA_0 =  1
 K_0      = 2*jnp.pi / LAMBDA_0
 SCALE    = -6*jnp.pi/K_0**3 * K_0**2
 
@@ -101,32 +103,6 @@ def dos( w, wm, gm ):
     """
     return 1/(wm.size*jnp.pi)*jnp.sum( gm / ( (jnp.expand_dims(w,1) - wm)**2 + gm**2), axis = 1 )
 
-def show( pos ):
-    fig, ax = plt.subplots(1,1)
-    ax.scatter( *pos[:,:2].T )
-    plt.show()
-
-def show_int_mat( pos ):
-    plt.matshow(int_mat(pos).real)
-    plt.show()
-
-def show_band_structure( pos, n = 1 ):
-    shift, linewidth, vecs = spectrum(pos)
-    ks = band_structure( vecs, n )
-    axs[0].plot( ks, shift, '.' )
-    axs[1].plot( ks, linewidth, '.' )
-    return axs
-
-def show_eigenstate( pos, selection : Array, component = 0, particle = 0, n = 1 ):
-    _,_,vecs = spectrum(pos)
-    fig, ax = plt.subplots(1,1)
-    ax.plot( vecs[(component+particle)::3*n,selection].real, '.' )
-    plt.show()
-
-def quickshow( vec ):
-    plt.plot( jnp.arange(vec.size), vec )
-    plt.show()
-
 def analytic_chain( l : float, kzs ):
     """
     Analytic expression for dispersion relation and collective decay rates of 1D chain with lattice constant l, evaluated at k-vectors given by the array kzs
@@ -153,18 +129,85 @@ def analytic_chain( l : float, kzs ):
     return jnp.array( [ inner(float(x)) for x in kzs * l ]  )
 
 def analytic_stack( l : float, o : float, kzs ):
+    """
+    Analytic expression for dispersion relation and collective decay rates of two coupled chains with lattice constant l, evaluated at k-vectors given by the array kzs
+    Input:
+    l : Lattice constant
+    kzs : N-dim Array containing k vectors
+    Output:
+    res : Nx12 array where res[:,:5] contains delta and res[:,5:] contains gamma
+    """
     chain = 2*analytic_chain( l, kzs )
     bands = analytic_flat_bands( 1, 1, l, o ) * jnp.ones_like( kzs )
     return jnp.stack( (chain[:,0] - bands[0,0], chain[:,1] - bands[0,0], chain[:,0] - bands[1,0], bands[0,:], bands[1,:], bands[1,:],
                              chain[:,2], chain[:,3], chain[:,2], bands[2,:], bands[3,:], bands[2,:]) ).T                             
 
 def analytic_flat_bands( a : int, b : int, l : float, o : float ):
+    """
+    Analytic expression for flat bands and collective decay rates of two coupled Moiré chains. Parameters are identical to twisted_chains.
+    Returns Nx2m array where res[:,:(m-1)] contains delta and res[:,(m-1):] contains gamma
+    """
     pos = twisted_chains( a, b, l, o, 1)
     r  = jnp.min(jnp.linalg.norm(pos[ pos[:,1] != 0 ] - jnp.expand_dims(pos[ pos[:,1] == 0 ],1), axis = 2), axis = 1)
     kr = K_0 * r
     E1 = -SCALE/(8*jnp.pi*r) * ( jnp.cos(kr) - jnp.cos(kr)/kr**2 - jnp.sin(kr)/kr )
     E2 = -SCALE/(4*jnp.pi*r) * ( jnp.cos(kr)/kr**2 + jnp.sin(kr)/kr )
     return jnp.stack( [E1, E2, jnp.zeros_like(E1), jnp.zeros_like(E2)] )
+
+def show( pos ):
+    fig, ax = plt.subplots(1,1)
+    ax.scatter( *pos[:,:2].T )
+    plt.show()
+
+def show_int_mat( pos ):
+    plt.matshow(int_mat(pos).real)
+    plt.show()
+
+def show_band_structure( pos, n = 1 ):
+    shift, linewidth, vecs = spectrum(pos)
+    ks = band_structure( vecs, n )
+    axs[0].plot( ks, shift, '.' )
+    axs[1].plot( ks, linewidth, '.' )
+    return axs
+
+def show_eigenstate( pos, selection : Array, component = 0, particle = 0, n = 1 ):
+    _,_,vecs = spectrum(pos)
+    fig, ax = plt.subplots(1,1)
+    ax.plot( vecs[(component+particle)::3*n,selection].real, '.' )
+    plt.show()
+
+def quickshow( vec ):
+    plt.plot( jnp.arange(vec.size), vec )
+    plt.show()
+
+def to_tikz( a, b, l, o, N : int = 2 ):
+    """
+    Generates a tikz program to visualize a Moiré setup. Note that the number of colors is fixed. There will be repititions if the unit cell contains more atoms than N_colors.
+    """
+    def to_tikz_id( ident ):
+        return ident.split('_')[-1]        
+    def coord(arg):        
+        ident, color, pos = arg        
+        return f'\\coordinate[label=90:${ident}$] ({to_tikz_id(ident)}) at ({float(pos[0])},{float(pos[1])}); \\fill[{color}] ({to_tikz_id(ident)}) circle (3pt);'
+    
+    # adapted from wiki https://en.wikibooks.org/wiki/LaTeX/PGF/TikZ
+    tikz_colors = 'red, green, blue, cyan, magenta, lime, olive, orange, pink, purple, teal, violet'.split(', ')
+    cc = [ ('\\vb{p}_{' + f'{i % (a+b)}{int(i/(a+b))}' + "}", tikz_colors[ (i % (a+b)) % len(tikz_colors) ], pos[:2] ) for i,pos in enumerate(twisted_chains(a,b,l,o,N)) ]
+    header = """\\begin{tikzpicture}
+    \\coordinate[] (O) at (-2,1);
+    \\coordinate[] (Y) at (-2,2);
+    \\coordinate[] (X) at (-1,1);
+    \\draw[->] (O) -- (X)node[midway, below]{z};
+    \draw[->] (O) -- (Y)node[midway, left]{y};"""
+    draw_l2 = [ to_tikz_id(x) for x in map(lambda x : x[0], filter( lambda x : x[2][1] > 0, cc)) ]
+    draw_l1 = [ to_tikz_id(x) for x in map(lambda x : x[0], filter( lambda x : x[2][1] == 0, cc))]
+    footer = """\draw (""" + f'{draw_l2[0]}' + """) -- (""" + f'{draw_l2[1]}' + """)node[midway, above]{$\Lambda_2$};
+    \\draw (""" + f'{draw_l1[0]}' + """) -- (""" + f'{draw_l1[1]}' + """)node[midway, above]{$\Lambda_1$};
+    \\draw (""" + f'{draw_l1[a]}' + """) -- (""" + f'{draw_l2[b]}' + """)node[midway, right]{$d$}; 
+    \\end{tikzpicture}"""    
+    content = reduce( lambda x,y : x + y, map( coord, cc ) )
+    return f'{header}{content}{footer}'
+       
 
 k = jnp.linspace(0, 1, 200)
 X_LABEL = r'$k \,\,\,\left( \dfrac{\pi}{\Lambda} \right)$'
@@ -179,7 +222,7 @@ LL_SIZE = 2.1
 LL_LABEL = r'$k = k_0$'
 
 ## single chain
-lc = 0.4* LAMBDA_0
+lc = 0.2* LAMBDA_0
 light_line = K_0 / (jnp.pi/lc) 
 shift, linewidth, vecs = spectrum( chain(40,lc,0) )
 ks = band_structure( vecs, 1 )
@@ -205,7 +248,7 @@ ax2.legend( ax2.lines, (r'$G_{\perp}(k)$', r'$G_{\parallel}(k)$', 'finite', LL_L
 plt.show()
 plt.close()
 
-## stack with no Moiré
+# ## stack with no Moiré
 lc, o = 0.3*LAMBDA_0, 0.1*LAMBDA_0
 light_line = K_0 / (jnp.pi/lc) 
 arr = analytic_stack( lc, o, k * jnp.pi/lc)
@@ -247,7 +290,7 @@ plt.show()
 plt.close()
 # plt.savefig('dos.pdf')
 
-## twisted chains
+# ## twisted chains
 fig, ax = plt.subplots()
 a, b, o, lc = 3, 4, 0.1*LAMBDA_0, 0.3*LAMBDA_0
 vals = [ (3,4), (5,7), (8,9) ]
@@ -270,3 +313,5 @@ plt.legend()
 plt.show()
 plt.close()
 # plt.savefig('dos2.pdf')
+
+print( to_tikz(3, 4, 2, 2) )
