@@ -24,7 +24,6 @@ LAMBDA_0 =  1
 K_0      = 2*jnp.pi / LAMBDA_0
 SCALE    = -6*jnp.pi/K_0**3 * K_0**2
 
-
 def chain( N : int, lc : float, y : float ):
     """
     Constructs a Nx3 array containing the coordinates of a chain of length N with lattice constant lc in the xy-plane along the x-axis, moved by an offset y in y-direction
@@ -84,12 +83,12 @@ def band_structure( vecs, N = 1, n_m = 3 ):
     """
     def inner( vec ):
         return ks[ jnp.argmax(jnp.abs(jnp.fft.fft(vec, n = L)[:max_ind])) ]
-
+    
     # array containing all "possible" normalized ks 
     L = 2**16
     max_ind = int(L/2)
     ks = jnp.arange(max_ind) / L * 2
-    
+
     # for each vector, identify the oscillating component, so the component of the particle with largest abs values
     comp = jnp.argmax( jnp.stack([ jnp.abs(vecs[i::n_m*N,:]).sum(axis = 0) for i in range(n_m*N)]), axis = 0)
     vecs = jnp.stack( [ vecs[comp[i]::n_m*N,i] for i in range(comp.size) ] )
@@ -157,6 +156,8 @@ def analytic_flat_bands( a : int, b : int, l : float, o : float ):
 def show( pos ):
     fig, ax = plt.subplots(1,1)
     ax.scatter( *pos[:,:2].T )
+    # for i,p in enumerate(pos[:,:2].T):
+    #     plt.annotate( str(i), *p)
     plt.show()
 
 def show_int_mat( pos ):
@@ -207,8 +208,9 @@ def to_tikz( a, b, l, o, N : int = 2 ):
     \\end{tikzpicture}"""    
     content = reduce( lambda x,y : x + y, map( coord, cc ) )
     return f'{header}{content}{footer}'
-       
 
+
+       
 k = jnp.linspace(0, 1, 200)
 X_LABEL = r'$k \,\,\,\left( \dfrac{\pi}{\Lambda} \right)$'
 D_LABEL = r'$D(k)$'
