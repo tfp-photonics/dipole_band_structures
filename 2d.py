@@ -13,9 +13,7 @@ def band_structure( vecs, N = 1, n_m = 3, n_dim = 1 ):
     # array containing all "possible" normalized ks 
     L = 2**10
     max_ind = int(L/2)
-    # ks = jnp.arange(max_ind) / L * 2
     dim = int( jnp.sqrt( vecs.shape[0] / (N * n_m) ) )
-
     
     # for each vector, identify the oscillating component, so the component of the particle with largest abs values
     comp = jnp.argmax( jnp.stack([ jnp.abs(vecs[i::n_m*N,:]).sum(axis = 0) for i in range(n_m*N)]), axis = 0)
@@ -35,8 +33,6 @@ LL_STYLE = '--'
 LL_ALPHA = 0.8
 LL_SIZE = 2.1
 LL_LABEL = r'$k = k_0$'
-
-# pdb.set_trace()
 
 # mat = int_mat( lattice(3,0.3), n_m = 3 )
 # plt.imshow( jnp.abs(mat) )
