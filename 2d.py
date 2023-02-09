@@ -20,7 +20,7 @@ def band_structure( vecs, N = 1, n_m = 3, n_dim = 1 ):
     vecs = jnp.stack( [ vecs[comp[i]::n_m*N,i] for i in range(comp.size) ] )
     
     # return maximum k vector for each eigenvalue
-    return jax.vmap( jax.jit(inner), (0,), 0)( vecs )
+    return jnp.concatenate( jax.vmap( jax.jit(inner), (0,), 0)( vecs ) ).reshape(2,300) / L * 2
 
 k = jnp.linspace(0, 1, 200)
 X_LABEL = r'$k \,\,\,\left( \dfrac{\pi}{\Lambda} \right)$'
