@@ -44,7 +44,11 @@ def twisted_chains(a : int, b : int, l : float, o : float, N : int):
     """
     chains = stacked_chains( [(a*N, l, 0), (b*N, a/b*l, o)] )
     return chains[jnp.argsort(chains[:,0]),:]
-    
+
+def disorder( pos, sd ):
+    key = jax.random.PRNGKey(171)
+    return pos + sd * jax.random.uniform( key, pos.shape )
+        
 @jax.jit
 def dyad( vec1, vec2 ):
     """
@@ -148,6 +152,7 @@ def analytic_flat_bands( a : int, b : int, l : float, o : float ):
     """
     pos = twisted_chains( a, b, l, o, 1)
     r  = jnp.min(jnp.linalg.norm(pos[ pos[:,1] != 0 ] - jnp.expand_dims(pos[ pos[:,1] == 0 ],1), axis = 2), axis = 1)
+    # r  = jnp.min(jnp.linalg.norm(pos[ pos[:,1] == 0 ] - jnp.expand_dims(pos[ pos[:,1] != 0 ],1), axis = 2), axis = 1)
     kr = K_0 * r
     E1 = -SCALE/(8*jnp.pi*r) * ( jnp.cos(kr) - jnp.cos(kr)/kr**2 - jnp.sin(kr)/kr )
     E2 = -SCALE/(4*jnp.pi*r) * ( jnp.cos(kr)/kr**2 + jnp.sin(kr)/kr )
@@ -209,7 +214,6 @@ def to_tikz( a, b, l, o, N : int = 2 ):
     content = reduce( lambda x,y : x + y, map( coord, cc ) )
     return f'{header}{content}{footer}'
 
-
 if __name__ == '__main__':
     k = jnp.linspace(0, 1, 200)
     X_LABEL = r'$k \,\,\,\left( \dfrac{\pi}{\Lambda} \right)$'
@@ -224,96 +228,255 @@ if __name__ == '__main__':
     LL_LABEL = r'$k = k_0$'
 
     ## single chain
-    lc = 0.2* LAMBDA_0
-    light_line = K_0 / (jnp.pi/lc) 
-    shift, linewidth, vecs = spectrum( chain(40,lc,0) )
-    ks = band_structure( vecs, 1 )
-    arr = analytic_chain( lc, k*jnp.pi/lc )
+    # lc = 0.2* LAMBDA_0
+    # light_line = K_0 / (jnp.pi/lc) 
+    # shift, linewidth, vecs = spectrum( chain(40,lc,0) )
+    # ks = band_structure( vecs, 1 )
+    # arr = analytic_chain( lc, k*jnp.pi/lc )
 
-    fig, (ax1, ax2) = plt.subplots(ncols=2)
-    ax1.set_box_aspect(1)
-    ax1.plot( k, arr[:,:2], lw = LW )
-    ax1.plot( ks, shift, '.', lw = PS )
-    ax1.set_xlabel( X_LABEL )
-    ax1.set_ylabel( D_LABEL )
-    ax1.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
-    ax1.legend( ax1.lines, (r'$D_{\perp}(k)$', r'$D_{\parallel}$(k)', 'finite', LL_LABEL ) )
+    # fig, (ax1, ax2) = plt.subplots(ncols=2)
+    # ax1.set_box_aspect(1)
+    # ax1.plot( k, arr[:,:2], lw = LW )
+    # ax1.plot( ks, shift, '.', lw = PS )
+    # ax1.set_xlabel( X_LABEL )
+    # ax1.set_ylabel( D_LABEL )
+    # ax1.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
+    # ax1.legend( ax1.lines, (r'$D_{\perp}(k)$', r'$D_{\parallel}$(k)', 'finite', LL_LABEL ) )
 
-    ax2.set_box_aspect(1)
-    ax2.plot( k, arr[:,2:], lw = LW )
-    ax2.plot( ks, linewidth, '.', lw = PS )
-    ax2.set_xlabel( X_LABEL )
-    ax2.set_ylabel( G_LABEL )
-    ax2.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
-    ax2.legend( ax2.lines, (r'$G_{\perp}(k)$', r'$G_{\parallel}(k)$', 'finite', LL_LABEL) )
-    # plt.savefig('single_chain.pdf')
-    plt.show()
-    plt.close()
+    # ax2.set_box_aspect(1)
+    # ax2.plot( k, arr[:,2:], lw = LW )
+    # ax2.plot( ks, linewidth, '.', lw = PS )
+    # ax2.set_xlabel( X_LABEL )
+    # ax2.set_ylabel( G_LABEL )
+    # ax2.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
+    # ax2.legend( ax2.lines, (r'$G_{\perp}(k)$', r'$G_{\parallel}(k)$', 'finite', LL_LABEL) )
+    # # plt.savefig('single_chain.pdf')
+    # plt.show()
+    # plt.close()
 
     # ## stack with no Moiré
-    lc, o = 0.3*LAMBDA_0, 0.1*LAMBDA_0
-    light_line = K_0 / (jnp.pi/lc) 
-    arr = analytic_stack( lc, o, k * jnp.pi/lc)
-    pos = twisted_chains(1,1,lc,o,30)
-    shift, linewidth, vecs = spectrum( pos )
-    w = jnp.linspace(jnp.min(shift)-1,jnp.max(shift)+1,400)
-    ks = band_structure( vecs, 2 )
-    d = dos(w, shift, linewidth  ) 
+    # lc, o = 0.3*LAMBDA_0, 0.1*LAMBDA_0
+    # light_line = K_0 / (jnp.pi/lc) 
+    # arr = analytic_stack( lc, o, k * jnp.pi/lc)
+    # pos = twisted_chains(1,1,lc,o,30)
+    # shift, linewidth, vecs = spectrum( pos )
+    # w = jnp.linspace(jnp.min(shift)-1,jnp.max(shift)+1,400)
+    # ks = band_structure( vecs, 2 )
+    # d = dos(w, shift, linewidth  ) 
 
+    # fig = plt.figure()
+    # canvas = gridspec.GridSpec(2,
+    #                           1,
+    #                           wspace=0,
+    #                           hspace=0.05,
+    #                           height_ratios=[0.05,1])
+    # inlet = gridspec.GridSpecFromSubplotSpec(1,
+    #                                          2,
+    #                                          subplot_spec=canvas[1],
+    #                                          wspace=0,
+    #                                          hspace=0)
+
+    # ax1 = plt.subplot( inlet[0] )
+    # sc = ax1.scatter( ks, shift, c = linewidth )
+    # ax1.plot( k, arr[:,:6] )
+    # ax1.set_xlabel( X_LABEL )
+    # ax1.set_ylabel( 'D' )
+    # ax1.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
+
+    # ax2 = plt.subplot( inlet[1] )
+    # ax2.sharey(ax1)
+    # ax2.plot( d, w, '--' )
+    # ax2.set_xlabel( r'DOS' )
+    # ax2.legend( ax1.lines[:-1] + ax2.lines, (r'$D_{1,+}(k)$', r'$D_{3,+}(k)$', r'$D_{2,+}(k)$', r'$D_{1,-}(k)$', r'$D_{3,-}(k)$', r'$D_{2,-}(k)$', r'$DOS(D)$' ) )
+    # plt.setp(ax2.get_yticklabels(), visible=False)
+    # cbax = plt.subplot(canvas[0])
+    # cb = Colorbar(ax = cbax, mappable = sc, orientation = 'horizontal', ticklocation = 'top', label = r'$G$' )
+    # plt.show()
+    # plt.close()
+    # # plt.savefig('dos.pdf')
+
+    # ## twisted chains
+    # fig, ax = plt.subplots()
+    # a, b, o, lc = 3, 4, 0.1*LAMBDA_0, 0.3*LAMBDA_0
+    # vals = [ (3,4), (5,7), (8,9) ]
+    # flat_bands = [ analytic_flat_bands( a, b, lc, o) for a,b in vals ]
+    # lim1, lim2 = max( [ jnp.max(arr) for arr in flat_bands ] ) + 2, min( jnp.min(arr) for arr in flat_bands ) - 2
+    # for i,arr in enumerate(flat_bands):
+    #     a,b = vals[i]
+    #     shift, linewidth, vecs = spectrum( twisted_chains(a,b,lc,o,30) )
+    #     w = jnp.linspace(lim1,lim2,4000)
+    #     d = dos(w, shift, linewidth) 
+
+    #     ax.plot( w, d, label = rf'$\theta = {a}/{b}$' )
+    #     for el in arr[:int(arr.shape[0]/2),:].flatten():
+    #         ax.axvline( el, ls = '--', c = ax.lines[-1].get_color(), alpha = 0.5 )
+    # ax.set_yscale('log')
+    # ax.set_xlabel(r'$D$')
+    # ax.set_ylabel(r'$\log(DOS)$')
+    # plt.legend()
+    # plt.show()
+    # plt.close()
+    # # plt.savefig('dos2.pdf')
+
+    # print( to_tikz(3, 4, 2, 2) )
+    
+    ## dispersion plots
+    a, b, o, lc = 3, 4, 0.1*LAMBDA_0, 0.3*LAMBDA_0
+    vals = [ (3,4), (5,7), (8,9) ]
+    flat_bands = [ analytic_flat_bands( a, b, lc, o) for a,b in vals ]
     fig = plt.figure()
     canvas = gridspec.GridSpec(2,
                               1,
                               wspace=0,
-                              hspace=0.05,
+                              hspace=0.17,
                               height_ratios=[0.05,1])
     inlet = gridspec.GridSpecFromSubplotSpec(1,
-                                             2,
+                                             3,
                                              subplot_spec=canvas[1],
                                              wspace=0,
                                              hspace=0)
-
-    ax1 = plt.subplot( inlet[0] )
-    sc = ax1.scatter( ks, shift, c = linewidth )
-    ax1.plot( k, arr[:,:6] )
-    ax1.set_xlabel( X_LABEL )
-    ax1.set_ylabel( 'D' )
-    ax1.axvline( light_line, c = LL_COLOR, ls = LL_STYLE, alpha = LL_ALPHA, lw = LL_SIZE )
-
-    ax2 = plt.subplot( inlet[1] )
-    ax2.sharey(ax1)
-    ax2.plot( d, w, '--' )
-    ax2.set_xlabel( r'DOS' )
-    ax2.legend( ax1.lines[:-1] + ax2.lines, (r'$D_{1,+}(k)$', r'$D_{3,+}(k)$', r'$D_{2,+}(k)$', r'$D_{1,-}(k)$', r'$D_{3,-}(k)$', r'$D_{2,-}(k)$', r'$DOS(D)$' ) )
-    plt.setp(ax2.get_yticklabels(), visible=False)
-
-    cbax = plt.subplot(canvas[0])
-    cb = Colorbar(ax = cbax, mappable = sc, orientation = 'horizontal', ticklocation = 'top', label = r'$G$' )
-    plt.show()
-    plt.close()
-    # plt.savefig('dos.pdf')
-
-    # ## twisted chains
-    fig, ax = plt.subplots()
-    a, b, o, lc = 3, 4, 0.1*LAMBDA_0, 0.3*LAMBDA_0
-    vals = [ (3,4), (5,7), (8,9) ]
-    flat_bands = [ analytic_flat_bands( a, b, lc, o) for a,b in vals ]
-    lim1, lim2 = max( [ jnp.max(arr) for arr in flat_bands ] ) + 2, min( jnp.min(arr) for arr in flat_bands ) - 2
-    for i,arr in enumerate(flat_bands):
+    inlet = [plt.subplot(i) for i in inlet]
+    for i,ax in enumerate(inlet):
+        if i:
+            ax.sharey(inlet[i-1])
+            ax.get_yaxis().set_visible(False)
+            ax.get_xaxis().set_visible(False)
+        else:
+            ax.set_xlabel( X_LABEL )
+            ax.set_ylabel( D_LABEL )    
         a,b = vals[i]
+        ax.set_title(rf'$\theta = {a}/{b}$')
         shift, linewidth, vecs = spectrum( twisted_chains(a,b,lc,o,30) )
-        w = jnp.linspace(lim1,lim2,4000)
-        d = dos(w, shift, linewidth) 
+        ks = band_structure( vecs, a+b )
+        idxs = jnp.argwhere(linewidth <= 0.1)[:,0]
+        sc = ax.scatter( ks[idxs], shift[idxs], c = linewidth[idxs] )
+        for el in flat_bands[i][:int(flat_bands[0].shape[0]/2),:].flatten():
+            ax.axhline( el, ls = '--', lw = LW )
+    cbax = plt.subplot(canvas[0])
+    cb = Colorbar(ax = cbax, mappable = sc, orientation = 'horizontal', ticklocation = 'top', label = r'$G(k)$' )
+    plt.savefig('theta_dispersion.pdf')
 
-        ax.plot( w, d, label = rf'$\theta = {a}/{b}$' )
+    ## disorder
+    a, b, o, lc = 3, 4, 0.1*LAMBDA_0, 0.3*LAMBDA_0
+    arr = analytic_flat_bands( a, b, lc, o)
+    disorder_params = [0, 0.05, 0.1]
+    fig = plt.figure()
+    canvas = gridspec.GridSpec(2,
+                              1,
+                              wspace=0,
+                              hspace=0.17,
+                              height_ratios=[0.05,1])
+    inlet = gridspec.GridSpecFromSubplotSpec(1,
+                                             3,
+                                             subplot_spec=canvas[1],
+                                             wspace=0.22,
+                                             hspace=0)
+    inlet = [plt.subplot(i) for i in inlet]
+    for i,ax in enumerate(inlet):
+        if i:
+            ax.get_xaxis().set_visible(False)
+        else:
+            ax.set_xlabel( X_LABEL )
+            ax.set_ylabel( D_LABEL )    
+        ax.set_title(rf'$D = {disorder_params[i]*100} \%$')
+        shift, linewidth, vecs = spectrum( disorder(twisted_chains(a,b,lc,o,30), disorder_params[i]*o) )
+        ks = band_structure( vecs, a+b )
+        idxs = jnp.argwhere(linewidth <= 0.1)[:,0]
+        sc = ax.scatter( ks[idxs], shift[idxs], c = linewidth[idxs] )
         for el in arr[:int(arr.shape[0]/2),:].flatten():
-            ax.axvline( el, ls = '--', c = ax.lines[-1].get_color(), alpha = 0.5 )
+            ax.axhline( el, ls = '--', lw = LW )
+    cbax = plt.subplot(canvas[0])
+    cb = Colorbar(ax = cbax, mappable = sc, orientation = 'horizontal', ticklocation = 'top', label = r'$G(k)$' )
+    plt.savefig('disorder.pdf')
 
-    ax.set_yscale('log')
-    ax.set_xlabel(r'$D$')
-    ax.set_ylabel(r'$\log(DOS)$')
-    plt.legend()
-    plt.show()
-    plt.close()
-    # plt.savefig('dos2.pdf')
 
-    print( to_tikz(3, 4, 2, 2) )
+    ## distance dependence    
+    a, b, os, lc = 3, 4, [0.1, 0.12, 0.14], 0.3*LAMBDA_0
+    flat_bands = [ analytic_flat_bands( a, b, lc, o*LAMBDA_0) for o in os ]
+    fig = plt.figure()
+    canvas = gridspec.GridSpec(2,
+                              1,
+                              wspace=0,
+                              hspace=0.17,
+                              height_ratios=[0.05,1])
+    inlet = gridspec.GridSpecFromSubplotSpec(1,
+                                             3,
+                                             subplot_spec=canvas[1],
+                                             wspace=0.22,
+                                             hspace=0)
+    inlet = [plt.subplot(i) for i in inlet]
+    for i,ax in enumerate(inlet):
+        if i:
+            ax.get_xaxis().set_visible(False)
+        else:
+            ax.set_xlabel( X_LABEL )
+            ax.set_ylabel( D_LABEL )    
+        ax.set_title(rf'$d = {os[i]} \lambda_0$')
+        shift, linewidth, vecs = spectrum( twisted_chains(a,b,lc,os[i]*LAMBDA_0,30) )
+        ks = band_structure( vecs, a+b )
+        idxs = jnp.argwhere(linewidth <= 0.1)[:,0]
+        sc = ax.scatter( ks[idxs], shift[idxs], c = linewidth[idxs] )
+        for el in flat_bands[i][:int(flat_bands[i].shape[0]/2),:].flatten():
+            ax.axhline( el, ls = '--', lw = LW )
+    cbax = plt.subplot(canvas[0])
+    cb = Colorbar(ax = cbax, mappable = sc, orientation = 'horizontal', ticklocation = 'top', label = r'$G(k)$' )
+    plt.savefig('distance.pdf')
+
+    
+    ## dipole moments
+    fig, ax = plt.subplots()
+    a, b, o, lc = 1, 1, 0.1*LAMBDA_0, 0.3*LAMBDA_0
+    arr = analytic_flat_bands(a, b, lc, o)
+    shift, linewidth, vecs = spectrum( twisted_chains(a,b,lc,o,30) )
+    ks = band_structure( vecs, a+b )
+
+    fig, axs = plt.subplots(2,1)
+    axs[0].plot( jnp.arange(30), jnp.real(vecs[1::6,40]), label = r'$Re(\vec{v}_{y=0})$' )
+    axs[0].plot( jnp.arange(30), jnp.real(vecs[4::6,40]), label = r'$Re(\vec{v}_{y=d})$' )
+    axs[0].set_xlabel('Array site')
+    axs[0].set_ylabel(r'$Re(v_y)$')
+    axs[0].legend()
+    axs[0].set_title('Flat band mode')
+
+    axs[1].plot( jnp.arange(30), jnp.real(vecs[0::6,67]), label = r'$Re(\vec{v}_{y=0})$' )
+    axs[1].plot( jnp.arange(30), jnp.real(vecs[3::6,67]), label = r'$Re(\vec{v}_{y=d})$' )
+    axs[1].set_xlabel('Array site')
+    axs[1].set_ylabel(r'$Re(v_x)$')
+    axs[1].legend()
+    axs[1].set_title('Curved band mode')
+    fig.tight_layout()
+    plt.savefig('eigenvectors.pdf')
+
+    ## atom number
+    a, b, o, lc = 3, 4, 0.1*LAMBDA_0, 0.3*LAMBDA_0
+    arr = analytic_flat_bands( a, b, lc, o)
+    ucs = [3, 5, 10]
+    fig = plt.figure()
+    canvas = gridspec.GridSpec(2,
+                              1,
+                              wspace=0,
+                              hspace=0.17,
+                              height_ratios=[0.05,1])
+    inlet = gridspec.GridSpecFromSubplotSpec(1,
+                                             3,
+                                             subplot_spec=canvas[1],
+                                             wspace=0.22,
+                                             hspace=0)
+    inlet = [plt.subplot(i) for i in inlet]
+    for i,ax in enumerate(inlet):
+        if i:
+            ax.get_xaxis().set_visible(False)
+        else:
+            ax.set_xlabel( X_LABEL )
+            ax.set_ylabel( D_LABEL )    
+        ax.set_title(rf'$N_u = {ucs[i]}, N = {(a+b)*ucs[i]}$')
+        shift, linewidth, vecs = spectrum( twisted_chains(a,b,lc,o,ucs[i]) )
+        ks = band_structure( vecs, a+b )
+        idxs = jnp.argwhere(linewidth <= 0.1)[:,0]
+        sc = ax.scatter( ks[idxs], shift[idxs], c = linewidth[idxs] )
+        for el in arr[:int(arr.shape[0]/2),:].flatten():
+            ax.axhline( el, ls = '--', lw = LW )
+    cbax = plt.subplot(canvas[0])
+    cb = Colorbar(ax = cbax, mappable = sc, orientation = 'horizontal', ticklocation = 'top', label = r'$G(k)$' )
+    plt.savefig('atom_number.pdf')
+
