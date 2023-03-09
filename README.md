@@ -10,4 +10,4 @@ pip intall -e .
 ```
 
 ## Run
-Execte main.py to get the plots used in the paper.
+Execte figures_chains.py to get the plots used in the paper.
