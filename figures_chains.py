@@ -1,5 +1,6 @@
 from main import *
 
+
 ## eigenvalues
 def spectrum(pos):
     """

@@ -27,6 +27,7 @@ LAMBDA_0 = 1
 K_0 = 2 * jnp.pi / LAMBDA_0
 SCALE = -6 * jnp.pi / K_0**3 * K_0**2
 
+
 ## geometry
 def chain(N: int, lc: float, y: float):
     """
