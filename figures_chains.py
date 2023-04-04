@@ -87,16 +87,6 @@ def analytic_flat_bands( a : int, b : int, l : float, o : float ):
     E2 = -SCALE/(4*jnp.pi*r) * ( jnp.cos(kr)/kr**2 + jnp.sin(kr)/kr )
     return jnp.stack( [E1, E2, jnp.zeros_like(E1), jnp.zeros_like(E2)] )
 
-@jax.jit
-def dyad_electric( vec1, vec2 ):
-    """
-    Computes the 3x3 dyadic Green's tensor at k = k_0 connecting vec1 and vec2
-    """    
-    r_vec = vec1 - vec2
-    r = jnp.linalg.norm(r_vec)
-    return lax.cond( r == 0, lambda r : jnp.zeros((3,3), dtype = complex), lambda r : jnp.exp(1j*K_0*r)/(4*jnp.pi*r)*( jnp.eye(3)*(1 + (1j*K_0*r-1)/(K_0*r)**2 ) + (-1 + (3 - 3*1j*K_0*r)/(K_0*r)**2) * jnp.outer(r_vec,r_vec)/r**2 ), r )
-
-
 def to_tikz( a, b, l, o, N : int = 2 ):
     """
     Generates a tikz program to visualize a Moiré setup. Note that the number of colors is fixed. There will be repititions if the unit cell contains more atoms than N_colors.
@@ -141,11 +131,10 @@ if __name__ == '__main__':
 
     ## single chain
     lc = 0.2* LAMBDA_0
-    light_line = K_0 / (jnp.pi/lc) 
+    light_line = K_0 / (jnp.pi/lc)
     shift, linewidth, vecs = spectrum( chain(40,lc,0) )
     ks = band_structure( vecs, 1 )
     arr = analytic_chain( lc, k*jnp.pi/lc )
-
     fig, (ax1, ax2) = plt.subplots(ncols=2)
     ax1.set_box_aspect(1)
     ax1.plot( k, arr[:,:2], lw = LW )
@@ -166,6 +155,9 @@ if __name__ == '__main__':
     plt.show()
     plt.close()
 
+    pdb.set_trace()
+
+    
     ## stack with no Moiré
     lc, o = 0.3*LAMBDA_0, 0.1*LAMBDA_0
     light_line = K_0 / (jnp.pi/lc) 
