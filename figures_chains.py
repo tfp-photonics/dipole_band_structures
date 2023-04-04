@@ -154,9 +154,6 @@ if __name__ == '__main__':
     # plt.savefig('single_chain.pdf')
     plt.show()
     plt.close()
-
-    pdb.set_trace()
-
     
     ## stack with no Moiré
     lc, o = 0.3*LAMBDA_0, 0.1*LAMBDA_0
